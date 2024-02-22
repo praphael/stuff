@@ -1,0 +1,111 @@
+<html>
+<body>
+    <canvas id="canvas" width="525" height="1100"></canvas>
+    
+    <script src="common.js"></script>
+    <script src="rink.js"></script>
+    <script src="gameObjects.js"></script>
+    <script>
+
+    // scaling factor for drawing, since dimensions are based on feet
+    const scaleFactor = 4.5;
+    const COLOR_TEAM_HOME = "rgb(200, 128, 0)";
+    const COLOR_TEAM_AWAY = "rgb(0, 192, 200)";
+    const TEAM_COLORS = [COLOR_TEAM_HOME, COLOR_TEAM_AWAY];
+    const canvas = document.getElementById("canvas");
+
+    let validKeys = new Set(["w", "a", "s", "d", "ArrowUp", "ArrowLeft", "ArrowRight", "ArrowDown"]);
+    let keys = new Map();
+    validKeys.forEach((k) => keys.set(k, false));
+    
+    rink = new Rink();
+    let gameObjs = [];
+    let playerIdx = 0;
+
+    firstTime = true;
+    function draw () {
+        // if (!isAllImagesLoaded) 
+        //  return;
+        // logMessage(keys.get("w"));
+        if(canvas.getContext) {
+            const ctx = canvas.getContext("2d");
+            if(firstTime) {
+                ctx.scale(scaleFactor, scaleFactor);
+                firstTime = false;
+            }
+            ctx.fillStyle = "white";
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 1;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+            rink.draw(ctx);
+            
+            i=0;
+            gameObjs.forEach( (obj) => {
+                vInc = VELOCITY_INC;
+                
+                if(i===playerIdx) {
+                    dx = 0;
+                    dy = 0;
+                    // logMessage("team= " + gameObjs[i].team + " role= " + gameObjs[i].role);
+                    if(keys.get("w"))
+                        dy = -vInc;
+                    if(keys.get("a"))
+                        dx = -vInc;
+                    if(keys.get("s"))
+                        dy = vInc;
+                    if(keys.get("d"))
+                        dx = vInc;
+                    obj.changeVel(dx, dy);
+                }
+                obj.draw(ctx);
+                // logMessage('vel x= ' + obj.vel.x + " vel y= " + obj.vel.y);
+                obj.updatePos();
+                i++;
+                /*
+                if (obj.vel.x < 0 || obj.vel.x+obj.rad > canvas.width) 
+                    obj.vel.x = -obj.vel.x;
+                if (obj.pos.y < 0 || obj.y+obj.rad > canvas.height)
+                    obj.vy = -obj.vy;
+                */
+            });
+
+            // collision detection
+            for(i=0; i<gameObjs.length; i++) {
+                gameObjs[i].detectHandleBoardCollision(rink.BOARDS, rink.ellipticalParams);
+                for(j=i+1; j<gameObjs.length; j++) {
+                    if(detectColision(gameObjs[i], gameObjs[j])) {
+                        handleCollision(gameObjs[i], gameObjs[j]);
+                    }
+                }
+            }
+        }
+    }
+
+    window.addEventListener("keydown", (e) => {
+        if (!e.repeat) {
+            // logMessage(`Key "${e.key}" pressed [event: keydown]`);
+            if(validKeys.has(e.key)) {
+                keys.set(e.key, true);
+               // logMessage(e.key, " valid");
+            }
+        } else {
+            //logMessage(`Key "${e.key}" repeating [event: keydown]`);
+        }
+    });
+
+    window.addEventListener("keyup", (e) => {
+        if(validKeys.has(e.key)) {
+            keys.set(e.key, false);
+            // logMessage(e.key, " valid");
+        }
+        // logMessage(`Key "${e.key}" released [event: keyup]`);
+    });
+
+    initObjects(gameObjs, TEAM_COLORS, CENTER_ICE, FACEOFF_CIRCLE_RAD, FACEOFF_CIRCLE_DOT_RAD, CREASE_AREAS);
+    
+    window.setInterval(draw, 50);
+    </script>
+</body>
+</script>
+</html>
